@@ -3,34 +3,50 @@ package me.lutea.iswho;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import me.lutea.iswho.intface.IData;
 import me.lutea.iswho.intface.ILog.LEVEL;
 
 public class IWData implements IData {
-	public static final String		DEFAULT_SERVER	= ".whois-servers.net";
-	public static final String		COMSIGN			= "domain ={domain}";
-	public static final String		DESIGN			= "-T dn,ace {domain}";
-	protected static List<String>	ComSignList;
-	protected static List<String>	DeSignList;
+	protected static final String	DEFAULT_SERVER	= ".whois-servers.net";
+	protected static Properties		Settings;
+	protected static Properties		Servers;
+	protected static Properties		Datas;
+	protected static Properties		Filters;
 
 	static {
-		ComSignList = new ArrayList<String>();
-		ComSignList.add( "com" );
-		ComSignList.add( "net" );
-		ComSignList.add( "jobs" );
-		ComSignList.add( "cc" );
+		String pFile = "";
+		try {
+			pFile = "settings.properties";
+			Settings = new Properties();
+			Settings.load( IWData.class.getResourceAsStream( pFile ) );
 
-		DeSignList = new ArrayList<String>();
-		DeSignList.add( "de" );
+			pFile = "servers.properties";
+			Servers = new Properties();
+			Servers.load( IWData.class.getResourceAsStream( pFile ) );
+
+			pFile = "datas.properties";
+			Datas = new Properties();
+			Datas.load( IWData.class.getResourceAsStream( pFile ) );
+
+			pFile = "filters.properties";
+			Filters = new Properties();
+			Filters.load( IWData.class.getResourceAsStream( pFile ) );
+		}
+		catch (Exception e) {
+			ISWHO.getLog().log( LEVEL.ERROR, "can not load <" + pFile + ">" );
+		}
 	}
 
 	public IWData() {
 	}
 
 	@Override
-	public final WhoisServer getServer(String domain) {
+	public WhoisServer getServer(String domain) {
 		WhoisServer server = null;
 
 		List<String> tlds = buildTLDs( domain );
@@ -38,36 +54,27 @@ public class IWData implements IData {
 			return server;
 
 		for (String tld : tlds) {
-			server = getDirectServer( tld );
+			server = getTLDServer( tld );
 			if (null != server)
 				break;
 		}
 
 		if (null == server)
 			for (String tld : tlds) {
-				String host = tld + DEFAULT_SERVER;
+				String host = joinDefaultServer( tld );
 				if (null == getAddressbyName( host )) {
 					ISWHO.getLog().log( LEVEL.WARN,
 							"[" + domain + "] can not access to server <" + host + "> try next one..." );
 					continue;
 				}
-
 				server = new WhoisServer( host );
-
-				// Check if has special parameters
-				if (ComSignList.contains( tld ))
-					server.setParams( COMSIGN );
-
-				if (DeSignList.contains( tld ))
-					server.setParams( DESIGN );
-
 				break;
 			}
 
 		return server;
 	}
 
-	public static List<String> buildTLDs(String domain) {
+	private List<String> buildTLDs(String domain) {
 		List<String> tlds = new ArrayList<String>();
 		String tld = domain;
 		int pos = -1;
@@ -78,7 +85,7 @@ public class IWData implements IData {
 		return tlds;
 	}
 
-	public static String getAddressbyName(String domain) {
+	private String getAddressbyName(String domain) {
 		String host = null;
 		try {
 			InetAddress addr = InetAddress.getByName( domain );
@@ -90,8 +97,53 @@ public class IWData implements IData {
 		return host;
 	}
 
+	private String joinDefaultServer(String tld) {
+		return tld + DEFAULT_SERVER;
+	}
+
 	@Override
-	public WhoisServer getDirectServer(String tld) {
-		return null;
+	public WhoisServer getTLDServer(String tld) {
+		WhoisServer server = null;
+		String s = Servers.getProperty( tld, "" );
+		if (s.equals( "" )) {
+			return server;
+		}
+		String[] sp = s.split( "," );
+		if (sp.length == 1) {
+			server = new WhoisServer( sp[0] );
+		}
+		else {
+			if (sp[0].trim().equals( "" )) {
+				sp[0] = joinDefaultServer( tld );
+			}
+			server = new WhoisServer( sp[0] );
+			String p = Settings.getProperty( sp[1].trim(), "" );
+			if (!p.equals( "" )) {
+				server.setParams( p );
+			}
+		}
+		return server;
+	}
+
+	@Override
+	public Map<String, String> getQueryData(String host) {
+		Map<String, String> data = new HashMap<String, String>();
+		if (host.endsWith( DEFAULT_SERVER ))
+			host = host.substring( 0, host.indexOf( DEFAULT_SERVER ) );
+		String[] params = Filters.getProperty( host, "" ).split( "\\|{3}" );
+		for (String p : params) {
+			if (null == p || "".equals( p ))
+				continue;
+			String[] kv = p.split( "\\|" );
+			if (kv.length > 1)
+				data.put( kv[0], kv[1] );
+		}
+		return data;
+	}
+
+	@Override
+	public Map<String, String> getParseData(String host) {
+		Map<String, String> data = new HashMap<String, String>();
+		return data;
 	}
 }

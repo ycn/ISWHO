@@ -11,7 +11,11 @@ public class IWParse implements IParse {
 
 	@Override
 	public WhoisServer parse(WhoisMap whoisMap, List<String> rawData) {
-		return null;
+		WhoisServer deep = null;
+		
+		
+		
+		return deep;
 	}
 
 }

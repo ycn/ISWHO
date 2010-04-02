@@ -14,6 +14,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -24,7 +25,7 @@ import me.lutea.iswho.intface.IQuery;
 import me.lutea.iswho.intface.ILog.LEVEL;
 
 public class IWQuery implements IQuery {
-	private static final int	READ_TIMEOUT	= 10000;
+	private static final int	READ_TIMEOUT	= 15000;
 
 	public IWQuery() {
 	}
@@ -52,6 +53,8 @@ public class IWQuery implements IQuery {
 		List<String> raw = new ArrayList<String>();
 		Socket sock = null;
 
+		Map<String, String> params = ISWHO.getData().getQueryData( server.getHostName() );
+
 		try {
 			InetAddress addr = InetAddress.getByName( server.getHostName() );
 			InetSocketAddress sAddr = new InetSocketAddress( addr, 43 );
@@ -65,8 +68,28 @@ public class IWQuery implements IQuery {
 
 			BufferedReader br = new BufferedReader( new InputStreamReader( sock.getInputStream(), "UTF-8" ) );
 			String line = null;
-			while ((line = br.readLine()) != null) {
-				raw.add( line );
+
+			if (null != params.get( "Start" )) {
+				while ((line = br.readLine()) != null) {
+					if (line.startsWith( params.get( "Start" ) )) {
+						raw.add( line );
+						break;
+					}
+				}
+			}
+
+			if (null != params.get( "End" )) {
+				while ((line = br.readLine()) != null) {
+					if (line.startsWith( params.get( "End" ) )) {
+						break;
+					}
+					raw.add( line );
+				}
+			}
+			else {
+				while ((line = br.readLine()) != null) {
+					raw.add( line );
+				}
 			}
 
 			pw.close();
@@ -92,14 +115,37 @@ public class IWQuery implements IQuery {
 	protected List<String> queryHttp(String domain, WhoisServer server) {
 		List<String> raw = new ArrayList<String>();
 
+		Map<String, String> params = ISWHO.getData().getQueryData( server.getHostName() );
+
 		try {
 			URL url = new URL( server.getURL( domain ) );
 			URLConnection conn = url.openConnection();
 			BufferedReader br = new BufferedReader( new InputStreamReader( conn.getInputStream(), "UTF-8" ) );
 			String line = null;
-			while ((line = br.readLine()) != null) {
-				raw.add( line );
+
+			if (null != params.get( "Start" )) {
+				while ((line = br.readLine()) != null) {
+					if (line.startsWith( params.get( "Start" ) )) {
+						raw.add( line );
+						break;
+					}
+				}
 			}
+
+			if (null != params.get( "End" )) {
+				while ((line = br.readLine()) != null) {
+					if (line.startsWith( params.get( "End" ) )) {
+						break;
+					}
+					raw.add( line );
+				}
+			}
+			else {
+				while ((line = br.readLine()) != null) {
+					raw.add( line );
+				}
+			}
+
 			br.close();
 		}
 		catch (Exception e) {

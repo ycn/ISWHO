@@ -33,8 +33,15 @@ public class WhoisServer {
 			else {
 				this.ptl = Protocol.WHOIS;
 				this.url = u;
-				this.host = u.toLowerCase();
-				this.params = DEFAULT_PARAM;
+				int pos = u.indexOf( "?" );
+				if (pos > 0) {
+					this.host = u.substring( 0, pos ).toLowerCase();
+					this.params = u.substring( pos + 1 );
+				}
+				else {
+					this.host = u.toLowerCase();
+					this.params = DEFAULT_PARAM;
+				}
 			}
 		}
 	}
@@ -42,7 +49,7 @@ public class WhoisServer {
 	public String getURL(String domain) {
 		return url.replace( DEFAULT_PARAM, domain );
 	}
-	
+
 	public String getHostName() {
 		return host;
 	}
@@ -62,10 +69,10 @@ public class WhoisServer {
 
 	@Override
 	public String toString() {
-		return url + (ptl.equals( Protocol.WHOIS ) ? "?" + params : "");
+		return (ptl.equals( Protocol.WHOIS ) ? host + "?" + params : url);
 	}
 
-	public static String getHostName(String url) {
+	private String getHostName(String url) {
 		String host = "";
 		if (url.indexOf( "://" ) == -1)
 			return url;
