@@ -29,7 +29,7 @@ public class ISWHO {
 		getLog().log( LEVEL.DEBUG, "[" + domain + "] ISWHO query start..." );
 
 		if (!validDomain( domain )) {
-			getLog().log( LEVEL.ERROR, "[" + domain + "] not a valid domain name" );
+			getLog().log( LEVEL.ERROR, "[" + domain + "] not a valid domain name (or not an ASCII IDN domain name)" );
 			return null;
 		}
 
@@ -46,7 +46,7 @@ public class ISWHO {
 		WhoisServer server = getData().getServer( domain );
 		if (null == server) {
 			getLog().log( LEVEL.ERROR, "[" + domain + "] can not get server" );
-			return null;
+			return whoisMap;
 		}
 
 		whoisMap.addWhoisServers( server.toString() );
@@ -56,7 +56,7 @@ public class ISWHO {
 		List<String> rawData = iQuery.query( domain, server );
 		if (null == rawData || rawData.isEmpty()) {
 			getLog().log( LEVEL.ERROR, "[" + domain + "] can not get rawdata from <" + server + ">" );
-			return null;
+			return whoisMap;
 		}
 		else {
 			getLog().log( LEVEL.DEBUG, "[" + domain + "] rawdata from <" + server + ">", rawData );
