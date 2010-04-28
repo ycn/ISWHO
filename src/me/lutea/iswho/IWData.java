@@ -3,20 +3,17 @@ package me.lutea.iswho;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import me.lutea.iswho.intface.IData;
 import me.lutea.iswho.intface.ILog.LEVEL;
 
 public class IWData implements IData {
-	protected static final String	DEFAULT_SERVER	= ".whois-servers.net";
-	protected static Properties		Settings;
-	protected static Properties		Servers;
-	protected static Properties		Datas;
-	protected static Properties		Filters;
+	protected static Properties	Settings;
+	protected static Properties	Servers;
+	protected static Properties	Datas;
+	protected static Properties	Filters;
 
 	static {
 		String pFile = "";
@@ -98,7 +95,7 @@ public class IWData implements IData {
 	}
 
 	private String joinDefaultServer(String tld) {
-		return tld + DEFAULT_SERVER;
+		return tld + WhoisServer.DEFAULT_SERVER;
 	}
 
 	@Override
@@ -126,24 +123,25 @@ public class IWData implements IData {
 	}
 
 	@Override
-	public Map<String, String> getQueryData(String host) {
-		Map<String, String> data = new HashMap<String, String>();
-		if (host.endsWith( DEFAULT_SERVER ))
-			host = host.substring( 0, host.indexOf( DEFAULT_SERVER ) );
+	public QueryData getQueryData(String host) {
+		QueryData data = new QueryData();
+		if (host.endsWith( WhoisServer.DEFAULT_SERVER ))
+			host = host.substring( 0, host.indexOf( WhoisServer.DEFAULT_SERVER ) );
 		String[] params = Filters.getProperty( host, "" ).split( "\\|{3}" );
-		for (String p : params) {
-			if (null == p || "".equals( p ))
-				continue;
-			String[] kv = p.split( "\\|" );
-			if (kv.length > 1)
-				data.put( kv[0], kv[1] );
+		data.setStartLine( params[0] );
+		if (params.length > 1) {
+			data.setEndLine( params[1] );
 		}
 		return data;
 	}
 
 	@Override
-	public Map<String, String> getParseData(String host) {
-		Map<String, String> data = new HashMap<String, String>();
+	public ParseData getParseData(String host) {
+		ParseData data = new ParseData();
+		if (host.endsWith( WhoisServer.DEFAULT_SERVER ))
+			host = host.substring( 0, host.indexOf( WhoisServer.DEFAULT_SERVER ) );
+		String[] params = Datas.getProperty( host, "" ).split( "\\|{3}" );
+
 		return data;
 	}
 }

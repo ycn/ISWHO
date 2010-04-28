@@ -1,7 +1,5 @@
 package me.lutea.iswho;
 
-import java.util.List;
-
 import me.lutea.iswho.intface.IData;
 import me.lutea.iswho.intface.ILog;
 import me.lutea.iswho.intface.IParse;
@@ -39,40 +37,49 @@ public class ISWHO {
 		if (null == iParse)
 			iParse = new IWParse();
 
-		whoisMap = new WhoisMap( domain );
+		if (whoisMap == null)
+			whoisMap = new WhoisMap( domain );
 
-		// 1. get the query server
-		getLog().log( LEVEL.DEBUG, "[" + domain + "] get the query server..." );
-		WhoisServer server = getData().getServer( domain );
-		if (null == server) {
-			getLog().log( LEVEL.ERROR, "[" + domain + "] can not get server" );
-			return whoisMap;
+		WhoisServer deepServer = whoisMap.getDeepWhois();
+		String rawData = "";
+
+		if (deepServer == null) {
+			// 1. get the query server
+			getLog().log( LEVEL.DEBUG, "[" + domain + "] get the query server..." );
+			WhoisServer server = getData().getServer( domain );
+			if (null == server) {
+				getLog().log( LEVEL.ERROR, "[" + domain + "] can not get server" );
+				return whoisMap;
+			}
+
+			whoisMap.addWhoisServers( server.toString() );
+
+			// 2. look up and get the raw data
+			getLog().log( LEVEL.DEBUG, "[" + domain + "] get the raw data from <" + server + ">..." );
+			rawData = iQuery.query( domain, server );
+			if (null == rawData || rawData.isEmpty()) {
+				getLog().log( LEVEL.ERROR, "[" + domain + "] can not get rawdata from <" + server + ">" );
+				return whoisMap;
+			}
+			else {
+				getLog().log( LEVEL.DEBUG, "[" + domain + "] rawdata from <" + server + ">:\n\n" + rawData );
+			}
+
+			whoisMap.setRawData( rawData );
+
+			// 3. parse the raw data into WhoisMap
+			getLog().log( LEVEL.DEBUG, "[" + domain + "] parse the raw data into WhoisMap..." );
+			iParse.parse( whoisMap, rawData );
+
 		}
 
-		whoisMap.addWhoisServers( server.toString() );
-
-		// 2. look up and get the raw data
-		getLog().log( LEVEL.DEBUG, "[" + domain + "] get the raw data from <" + server + ">..." );
-		List<String> rawData = iQuery.query( domain, server );
-		if (null == rawData || rawData.isEmpty()) {
-			getLog().log( LEVEL.ERROR, "[" + domain + "] can not get rawdata from <" + server + ">" );
-			return whoisMap;
-		}
-		else {
-			getLog().log( LEVEL.DEBUG, "[" + domain + "] rawdata from <" + server + ">", rawData );
-		}
-
-		whoisMap.setRawData( rawData );
-
-		// 3. parse the raw data into WhoisMap
-		getLog().log( LEVEL.DEBUG, "[" + domain + "] parse the raw data into WhoisMap..." );
-		WhoisServer deepServer = iParse.parse( whoisMap, rawData );
-
-		// 4. check if has a deep server and do deep query and parse
-		getLog().log( LEVEL.DEBUG, "[" + domain + "] check if has a deep server and do deep query and parse..." );
-		if (null != deepServer) {
+		if (deepServer != null) {
+			if (iQuery.useProxy())
+				whoisMap.cleanRawData();
+			
+			// 4. do deep query and parse
 			getLog().log( LEVEL.DEBUG,
-					"[" + domain + "] yes, deep server exist, get the raw data from <" + server + ">..." );
+					"[" + domain + "] deep server exist, get the raw data from <" + deepServer + ">..." );
 
 			whoisMap.addWhoisServers( deepServer.toString() );
 
@@ -82,16 +89,13 @@ public class ISWHO {
 				return whoisMap;
 			}
 			else {
-				getLog().log( LEVEL.DEBUG, "[" + domain + "] rawdata from <" + deepServer + ">", rawData );
+				getLog().log( LEVEL.DEBUG, "[" + domain + "] rawdata from <" + deepServer + ">:\n\n" + rawData );
 			}
 
 			whoisMap.setRawData( rawData );
 
 			getLog().log( LEVEL.DEBUG, "[" + domain + "] parse the raw data into WhoisMap again..." );
 			iParse.parse( whoisMap, rawData );
-		}
-		else {
-			getLog().log( LEVEL.DEBUG, "[" + domain + "] no deep server exist" );
 		}
 
 		getLog().log( LEVEL.DEBUG, "[" + domain + "] ISWHO query done." );
@@ -116,14 +120,6 @@ public class ISWHO {
 				public void log(LEVEL lv, String info, Exception e) {
 					System.out.println( lv + ":" + info + " - " + e.getMessage() );
 					e.printStackTrace();
-				}
-
-				@Override
-				public void log(LEVEL lv, String info, List<String> rawdata) {
-					System.out.println( lv + ":" + info + "\n" );
-					for (String line : rawdata)
-						System.out.println( line );
-					System.out.println();
 				}
 			};
 		}

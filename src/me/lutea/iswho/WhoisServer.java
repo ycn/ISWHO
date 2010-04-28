@@ -2,6 +2,7 @@ package me.lutea.iswho;
 
 
 public class WhoisServer {
+	public static final String	DEFAULT_SERVER	= ".whois-servers.net";
 	public static final String	DEFAULT_PARAM	= "{domain}";
 
 	private String				host;

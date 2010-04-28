@@ -6,39 +6,41 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
+import me.lutea.iswho.intface.IProxy;
 import me.lutea.iswho.intface.IQuery;
 import me.lutea.iswho.intface.ILog.LEVEL;
 
 public class IWQuery implements IQuery {
 	private static final int	READ_TIMEOUT	= 15000;
 
+	private IProxy				proxyFactory;
+	private String				curProxy;
+
 	public IWQuery() {
 	}
 
 	@Override
-	public List<String> query(String domain, WhoisServer server) {
-		List<String> raw = queryWhois( domain, server );
+	public String query(String domain, WhoisServer server) {
+		String raw = queryWhois( domain, server );
 		return raw;
 	}
 
-	protected List<String> queryWhois(String domain, WhoisServer server) {
-		List<String> raw = new ArrayList<String>();
+	protected String queryWhois(String domain, WhoisServer server) {
+		StringBuilder raw = new StringBuilder();
 		Socket sock = null;
 
-		Map<String, String> params = ISWHO.getData().getQueryData( server.getHostName() );
+		QueryData data = ISWHO.getData().getQueryData( server.getHostName() );
 
 		try {
 			InetAddress addr = InetAddress.getByName( server.getHostName() );
 			InetSocketAddress sAddr = new InetSocketAddress( addr, 43 );
 			sock = getConnectSocket( sAddr );
 			if (null == sock)
-				return raw;
+				return raw.toString();
 			sock.setSoTimeout( READ_TIMEOUT );
 			PrintWriter pw = new PrintWriter( sock.getOutputStream() );
 			pw.print( server.getParams( domain ) + "\r\n" );
@@ -47,26 +49,26 @@ public class IWQuery implements IQuery {
 			BufferedReader br = new BufferedReader( new InputStreamReader( sock.getInputStream(), "UTF-8" ) );
 			String line = null;
 
-			if (null != params.get( "Start" )) {
+			if (!"".equals( data.getStartLine() )) {
 				while ((line = br.readLine()) != null) {
-					if (line.startsWith( params.get( "Start" ) )) {
-						raw.add( line );
+					if (line.trim().toLowerCase().startsWith( data.getStartLine() )) {
+						raw.append( line + "\n" );
 						break;
 					}
 				}
 			}
 
-			if (null != params.get( "End" )) {
+			if (!"".equals( data.getEndLine() )) {
 				while ((line = br.readLine()) != null) {
-					if (line.startsWith( params.get( "End" ) )) {
+					if (line.trim().toLowerCase().startsWith( data.getEndLine() )) {
 						break;
 					}
-					raw.add( line );
+					raw.append( line + "\n" );
 				}
 			}
 			else {
 				while ((line = br.readLine()) != null) {
-					raw.add( line );
+					raw.append( line + "\n" );
 				}
 			}
 
@@ -87,7 +89,7 @@ public class IWQuery implements IQuery {
 			}
 		}
 
-		return raw;
+		return raw.toString();
 	}
 
 	protected Socket getConnectSocket(SocketAddress addr) {
@@ -97,7 +99,18 @@ public class IWQuery implements IQuery {
 		int retryTimes = 0;
 		while (retryTimes < 6) {
 			try {
-				sock = new Socket();
+				curProxy = proxyFactory.getProxy();
+				if (null != curProxy) {
+					String[] ss = curProxy.split( ":" );
+					if (ss.length > 1) {
+						Proxy p = new Proxy( Proxy.Type.SOCKS, new InetSocketAddress( ss[0], Integer.parseInt( ss[1] ) ) );
+						sock = new Socket( p );
+						sock.setSoTimeout( READ_TIMEOUT );
+					}
+				}
+				else {
+					sock = new Socket();
+				}
 				sock.connect( addr, 1000 );
 			}
 			catch (Exception e) {
@@ -110,6 +123,21 @@ public class IWQuery implements IQuery {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public void setProxyFactory(IProxy proxyFactory) {
+		this.proxyFactory = proxyFactory;
+	}
+
+	@Override
+	public boolean useProxy() {
+		return (proxyFactory != null);
+	}
+
+	@Override
+	public String curProxy() {
+		return curProxy;
 	}
 
 }

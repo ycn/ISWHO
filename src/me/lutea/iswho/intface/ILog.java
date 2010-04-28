@@ -1,6 +1,5 @@
 package me.lutea.iswho.intface;
 
-import java.util.List;
 
 public interface ILog {
 	public enum LEVEL {
@@ -8,8 +7,6 @@ public interface ILog {
 	};
 
 	void log(LEVEL lv, String info);
-
-	void log(LEVEL lv, String info, List<String> rawdata);
 
 	void log(LEVEL lv, String info, Exception e);
 }

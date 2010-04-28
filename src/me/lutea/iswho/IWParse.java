@@ -1,7 +1,5 @@
 package me.lutea.iswho;
 
-import java.util.List;
-
 import me.lutea.iswho.intface.IParse;
 
 public class IWParse implements IParse {
@@ -10,7 +8,7 @@ public class IWParse implements IParse {
 	}
 
 	@Override
-	public WhoisServer parse(WhoisMap whoisMap, List<String> rawData) {
+	public WhoisServer parse(WhoisMap whoisMap, String rawData) {
 		WhoisServer deep = null;
 		return deep;
 	}

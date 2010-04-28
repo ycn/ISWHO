@@ -47,6 +47,12 @@ public class WhoisMap {
 		return JSONEncode.encode( map );
 	}
 
+	public WhoisServer getDeepWhois() {
+		if (map.containsKey( "DeepWhois" ))
+			return ( WhoisServer ) map.get( "DeepWhois" );
+		return null;
+	}
+
 	public String getDomain() {
 		return ( String ) map.get( "Domain" );
 	}
@@ -104,7 +110,9 @@ public class WhoisMap {
 
 	@SuppressWarnings("unchecked")
 	public List<String> getRawData() {
-		return ( List<String> ) map.get( "RawData" );
+		if (map.containsKey( "RawData" ))
+			return ( List<String> ) map.get( "RawData" );
+		return null;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -203,10 +211,22 @@ public class WhoisMap {
 		return this;
 	}
 
-	public WhoisMap setRawData(List<String> raw) {
-		if (null != raw && !raw.isEmpty()) {
+	public WhoisMap setRawData(String raw) {
+		if (null != raw && !"".equals( raw )) {
 			map.put( "RawData", raw );
 		}
+		return this;
+	}
+
+	public WhoisMap setDeepWhois(WhoisServer deepWhois) {
+		if (null != deepWhois) {
+			map.put( "DeepWhois", deepWhois );
+		}
+		return this;
+	}
+
+	public WhoisMap cleanRawData() {
+		map.remove( "RawData" );
 		return this;
 	}
 }

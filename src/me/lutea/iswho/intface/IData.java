@@ -1,7 +1,7 @@
 package me.lutea.iswho.intface;
 
-import java.util.Map;
-
+import me.lutea.iswho.ParseData;
+import me.lutea.iswho.QueryData;
 import me.lutea.iswho.WhoisServer;
 
 public interface IData {
@@ -9,7 +9,7 @@ public interface IData {
 
 	WhoisServer getTLDServer(String tld);
 
-	Map<String, String> getQueryData(String host);
+	QueryData getQueryData(String host);
 
-	Map<String, String> getParseData(String host);
+	ParseData getParseData(String host);
 }
